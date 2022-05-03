@@ -236,6 +236,27 @@ def make_atari(env_id, skip=4, max_episode_steps=None):
         env = TimeLimit(env, max_episode_steps=max_episode_steps)
     return env
 
+def make_procgen(env_id, env_seed, skip=4, max_episode_steps=None):
+    """Make Procgen games
+    Parameters
+    ----------
+    env_id: str
+        name of environment
+    env_seed: int
+        seed for the env (must be down at env creation, see https://github.com/openai/procgen/issues/21)
+    skip: int
+        frame skip
+    max_episode_steps: int
+        max moves for an episode
+    """
+    assert(env_seed is not None)
+    env = gym.make(env_id, num_levels=0, start_level=env_seed)
+    env = MaxAndSkipEnv(env, skip=skip)
+    if max_episode_steps is not None:
+        env = TimeLimit(env, max_episode_steps=max_episode_steps)
+    return env
+
+
 
 def set_seed(seed):
     # set seed
