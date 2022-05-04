@@ -15,7 +15,7 @@ class ProcgenConfig(BaseConfig):
             test_interval=10000,
             log_interval=1000,
             vis_interval=1000,
-            test_episodes=32,
+            test_episodes=100,
             checkpoint_interval=100,
             target_model_interval=200,
             save_ckpt_interval=10000,
@@ -98,7 +98,7 @@ class ProcgenConfig(BaseConfig):
         # gray scale
         if self.gray_scale:
             self.image_channel = 1
-        obs_shape = (self.image_channel, 96, 96)
+        obs_shape = (self.image_channel, 64, 64)
         self.obs_shape = (obs_shape[0] * self.stacked_observations, obs_shape[1], obs_shape[2])
 
         game = self.new_game()
@@ -132,10 +132,7 @@ class ProcgenConfig(BaseConfig):
 
     def new_game(self, seed=None, save_video=False, save_path=None, video_callable=None, uid=None, test=False, final_test=False):
         if seed is None:
-            print("creating a env with default 0 seed")
             seed = 0
-        else:
-            print(f"creating env with seed {seed}")
 
         env = make_procgen(self.env_name, seed, skip=self.frame_skip)
 
