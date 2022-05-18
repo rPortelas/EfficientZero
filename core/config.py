@@ -47,6 +47,7 @@ class BaseConfig(object):
                  auto_td_steps_ratio: float = 0.3,
                  total_transitions: int = 100 * 1000,
                  transition_num: float = 25,
+                 use_adam: bool = False,
                  do_consistency: bool = True,
                  use_value_prefix: bool = True,
                  off_correction: bool = True,
@@ -219,6 +220,7 @@ class BaseConfig(object):
         self.test_interval = test_interval
         self.test_episodes = test_episodes
 
+
         # Root prior exploration noise.
         self.value_delta_max = value_delta_max
         self.root_dirichlet_alpha = dirichlet_alpha
@@ -261,6 +263,7 @@ class BaseConfig(object):
         self.reward_support = reward_support
 
         # optimization control
+        self.use_adam = False
         self.weight_decay = 1e-4
         self.momentum = 0.9
         self.lr_warm_up = lr_warm_up
@@ -370,6 +373,7 @@ class BaseConfig(object):
         return hparams
 
     def set_config(self, args):
+        self.stacked_observations = args.frame_stack
         # reset config from the args
         self.set_game(args.env)
         self.case = args.case
@@ -385,6 +389,27 @@ class BaseConfig(object):
         self.gpu_actor = args.gpu_actor
         self.p_mcts_num = args.p_mcts_num
         self.use_root_value = args.use_root_value
+        self.num_actors = args.num_actors
+        self.transition_num = args.replay_transition_num  # TODO fix this erases previous in config file configs
+        self.total_transitions = args.total_transitions  # TODO fix this erases previous in config file configs
+        self.batch_size = args.batch_size  # TODO fix this erases previous in config file configs
+        self.training_steps = args.training_steps # TODO fix this erases previous in config file configs
+        self.lr_decay_steps = args.training_steps # TODO fix this erases previous in config file configs
+        self.use_adam = args.use_adam # TODO fix this erases previous in config file configs
+        self.lr_init = args.lr # TODO fix this erases previous in config file configs
+        if self.use_adam:
+            self.lr_init = 0.001  # DeepMind LR value
+        self.frame_skip = args.frame_skip
+        self.use_value_prefix = not args.no_value_prefix
+        self.do_consistency = not args.no_consistency
+        self.off_correction = not args.no_off_correction
+
+        self.discount **= self.frame_skip
+        self.max_moves //= self.frame_skip
+        self.test_max_moves //= self.frame_skip
+
+        self.start_transitions = self.start_transitions * 1000 // self.frame_skip
+        self.start_transitions = max(1, self.start_transitions)
 
         if not self.do_consistency:
             self.consistency_coeff = 0

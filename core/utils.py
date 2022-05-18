@@ -251,7 +251,8 @@ def make_procgen(env_id, env_seed, skip=4, max_episode_steps=None):
     """
     assert(env_seed is not None)
     env = gym.make(env_id, num_levels=0, start_level=env_seed)
-    env = MaxAndSkipEnv(env, skip=skip)
+    if skip > 1:
+        env = MaxAndSkipEnv(env, skip=skip)
     if max_episode_steps is not None:
         env = TimeLimit(env, max_episode_steps=max_episode_steps)
     return env

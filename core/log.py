@@ -1,4 +1,5 @@
 import ray
+import psutil
 import logging
 
 import numpy as np
@@ -16,19 +17,21 @@ def _log(config, step_count, log_data, model, replay_buffer, lr, shared_storage,
         pred_value_prefix, pred_value, target_policies, predicted_policies, state_lst, other_loss, other_log, other_dist = td_data
         batch_weights, batch_indices = priority_data
 
-    replay_episodes_collected, replay_buffer_size, priorities, total_num, worker_logs = ray.get([
+    replay_episodes_collected, replay_buffer_size, priorities, total_num, grand_total_num, worker_logs = ray.get([
         replay_buffer.episodes_collected.remote(), replay_buffer.size.remote(),
-        replay_buffer.get_priorities.remote(), replay_buffer.get_total_len.remote(),
+        replay_buffer.get_priorities.remote(), replay_buffer.get_total_len.remote(), replay_buffer.get_grand_total_len.remote(),
         shared_storage.get_worker_logs.remote()])
+    # Getting % usage of virtual_memory
+    ram_used = psutil.virtual_memory()[2]
 
     worker_ori_reward, worker_reward, worker_reward_max, worker_eps_len, worker_eps_len_max, test_counter, test_dict, temperature, visit_entropy, priority_self_play, distributions = worker_logs
 
     _msg = '#{:<10} Total Loss: {:<8.3f} [weighted Loss:{:<8.3f} Policy Loss: {:<8.3f} Value Loss: {:<8.3f} ' \
            'Reward Sum Loss: {:<8.3f} Consistency Loss: {:<8.3f} ] ' \
-           'Replay Episodes Collected: {:<10d} Buffer Size: {:<10d} Transition Number: {:<8.3f}k ' \
-           'Batch Size: {:<10d} Lr: {:<8.3f}'
+           'Replay Episodes Collected: {:<10d} Buffer Size: {:<10d} Transition Number: {:<8.3f}k Total Transition Number: {:<8.3f}k  ' \
+           'RAM memory % used:{} Batch Size: {:<10d} Lr: {:<8.3f}'
     _msg = _msg.format(step_count, total_loss, weighted_loss, policy_loss, value_loss, value_prefix_loss, consistency_loss,
-                       replay_episodes_collected, replay_buffer_size, total_num / 1000, config.batch_size, lr)
+                       replay_episodes_collected, replay_buffer_size, total_num / 1000, grand_total_num / 1000, ram_used, config.batch_size, lr)
     train_logger.info(_msg)
 
     if test_dict is not None:

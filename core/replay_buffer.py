@@ -25,6 +25,7 @@ class ReplayBuffer(object):
         self.base_idx = 0
         self._alpha = config.priority_prob_alpha
         self.transition_top = int(config.transition_num * 10 ** 6)
+        self.nb_transition_deleted = 0
         self.clear_time = 0
 
     def save_pools(self, pools, gap_step):
@@ -47,7 +48,7 @@ class ReplayBuffer(object):
         priorities: list
             the priorities corresponding to the transitions in the game history
         """
-        if self.get_total_len() >= self.config.total_transitions:
+        if self.get_total_len() >= self.config.total_transitions:  # TODO should be get_grand_total_len ?
             return
 
         if end_tag:
@@ -147,6 +148,7 @@ class ReplayBuffer(object):
         self.priorities = self.priorities[excess_games_steps:]
         del self.game_look_up[:excess_games_steps]
         self.base_idx += num_excess_games
+        self.nb_transition_deleted += excess_games_steps
 
         self.clear_time = time.time()
 
@@ -167,6 +169,11 @@ class ReplayBuffer(object):
     def get_priorities(self):
         return self.priorities
 
-    def get_total_len(self):
-        # number of transitions
+    def get_total_len(self):  #TODO rename something like get_replay_total_len
+        # number of transitions currently in buffer
         return len(self.priorities)
+
+    def get_grand_total_len(self):  #TODO True total of generated env transitions
+        # number of transitions processed throughout training
+        return len(self.priorities) + self.nb_transition_deleted
+

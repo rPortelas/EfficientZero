@@ -30,12 +30,13 @@ if __name__ == '__main__':
     parser.add_argument('--save_video', action='store_true', default=False, help='save video in test.')
     parser.add_argument('--force', action='store_true', default=False,
                         help='Overrides past results (default: %(default)s)')
-    parser.add_argument('--cpu_actor', type=int, default=14, help='batch cpu actor')
-    parser.add_argument('--gpu_actor', type=int, default=20, help='batch bpu actor')
+    parser.add_argument('--cpu_actor', type=int, default=20, help='batch cpu actor')
+    parser.add_argument('--gpu_actor', type=int, default=26, help='batch bpu actor')
     parser.add_argument('--p_mcts_num', type=int, default=8, help='number of parallel mcts')
     parser.add_argument('--seed', type=int, default=0, help='seed (default: %(default)s)')
     parser.add_argument('--num_gpus', type=int, default=4, help='gpus available')
     parser.add_argument('--num_cpus', type=int, default=80, help='cpus available')
+    parser.add_argument('--num_actors', type=int, default=1, help='number of parallel real experience workers')
     parser.add_argument('--revisit_policy_search_rate', type=float, default=0.99,
                         help='Rate at which target policy is re-estimated (default: %(default)s)')
     parser.add_argument('--use_root_value', action='store_true', default=False,
@@ -44,7 +45,22 @@ if __name__ == '__main__':
                         help='Uses priority for data sampling in replay buffer. '
                              'Also, priority for new data is calculated based on loss (default: False)')
     parser.add_argument('--use_max_priority', action='store_true', default=False, help='max priority')
+    parser.add_argument('--use_adam', action='store_true', default=False, help='use ADAM optim instead of SGD')
     parser.add_argument('--test_episodes', type=int, default=10, help='Evaluation episode count (default: %(default)s)')
+    parser.add_argument('--replay_transition_num','-replayMax', type=float, default=1,
+                        help='Max number of transitions in buffer (default: %(default)s)')
+    parser.add_argument('--total_transitions', type=int, default=100 * 1000,
+                        help='Max number of transitions/env steps during training (default: %(default)s)')
+    parser.add_argument('--batch_size', type=int, default=256,
+                        help='Number of transitions sampled from buffer for each training step (default: %(default)s)')
+    parser.add_argument('--training_steps', type=int, default=100 * 1000,
+                        help='Total number of training steps (model updates) during training (default: %(default)s)')
+    parser.add_argument('--frame_skip', type=int, default=4,
+                        help='Number of skipped frames (default: %(default)s)')
+    parser.add_argument('--frame_stack', type=int, default=4,
+                        help='Number of stacked frames (concatenated observations) (default: %(default)s)')
+    parser.add_argument('--lr', type=float, default=0.2,
+                        help='init learning rate (default: %(default)s)')
     parser.add_argument('--use_augmentation', action='store_true', default=True, help='use augmentation')
     parser.add_argument('--augmentation', type=str, default=['shift', 'intensity'], nargs='+',
                         choices=['none', 'rrc', 'affine', 'crop', 'blur', 'shift', 'intensity'],
@@ -52,7 +68,13 @@ if __name__ == '__main__':
     parser.add_argument('--info', type=str, default='none', help='debug string')
     parser.add_argument('--load_model', action='store_true', default=False, help='choose to load model')
     parser.add_argument('--model_path', type=str, default='./results/test_model.p', help='load model path')
-    parser.add_argument('--object_store_memory', type=int, default=150 * 1024 * 1024 * 1024, help='object store memory')
+    parser.add_argument('--object_store_memory', type=int, default=100000000000, help='object store memory')
+    parser.add_argument('--profile', action='store_true', default=False, help='ray profiling')
+    # Set the following parameters to False to revert to vanilla Muzero
+    parser.add_argument('--no_value_prefix', action='store_true', default=False, help='set to revert to vanilla Muzero')
+    parser.add_argument('--no_consistency', action='store_true', default=False, help='set to revert to vanilla Muzero')
+    parser.add_argument('--no_off_correction', action='store_true', default=False, help='set to revert to vanilla Muzero')
+
 
     # Process arguments
     args = parser.parse_args()
@@ -61,6 +83,9 @@ if __name__ == '__main__':
         ' Revisit policy search rate should be in [0,1]'
 
     if args.opr == 'train':
+        if args.profile:
+            print('profiling run')
+            os.environ["RAY_PROFILING"] = "1"
         ray.init(num_gpus=args.num_gpus, num_cpus=args.num_cpus,
                  object_store_memory=args.object_store_memory)
     else:
@@ -80,6 +105,10 @@ if __name__ == '__main__':
     # set config as per arguments
     exp_path = game_config.set_config(args)
     exp_path, log_base_path = make_results_dir(exp_path, args)
+
+    if args.profile:
+        print(exp_path)
+        ray.timeline(filename=exp_path + "/timeline.json")
 
     # set-up logger
     init_logger(log_base_path)

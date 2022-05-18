@@ -10,12 +10,12 @@ from .model import EfficientZeroNet
 class ProcgenConfig(BaseConfig):
     def __init__(self):
         super(ProcgenConfig, self).__init__(
-            training_steps=100000,
-            last_steps=20000,
-            test_interval=10000,
+            training_steps=300000,
+            last_steps=0,
+            test_interval=20000,  # in training steps
             log_interval=1000,
             vis_interval=1000,
-            test_episodes=100,
+            test_episodes=300,
             checkpoint_interval=100,
             target_model_interval=200,
             save_ckpt_interval=10000,
@@ -37,6 +37,7 @@ class ProcgenConfig(BaseConfig):
             cvt_string=True,
             image_based=True,
             # lr scheduler
+            use_adam=False,
             lr_warm_up=0.01,
             lr_init=0.2,
             lr_decay_rate=0.1,
@@ -44,10 +45,10 @@ class ProcgenConfig(BaseConfig):
             auto_td_steps_ratio=0.3,
             # replay window
             start_transitions=8,
-            total_transitions=100 * 1000,
-            transition_num=1,
+            total_transitions=100 * 1000,  # not used by the replay buffer ? TODO 100*10000
+            transition_num=1.0,  # size of the replay buffer in millions of env steps ? TODO 0.5
             # frame skip & stack observation
-            frame_skip=4,
+            frame_skip=1,
             stacked_observations=4,
             # coefficient
             reward_loss_coeff=1,
@@ -62,12 +63,6 @@ class ProcgenConfig(BaseConfig):
             proj_out=1024,
             pred_hid=512,
             pred_out=1024,)
-        self.discount **= self.frame_skip
-        self.max_moves //= self.frame_skip
-        self.test_max_moves //= self.frame_skip
-
-        self.start_transitions = self.start_transitions * 1000 // self.frame_skip
-        self.start_transitions = max(1, self.start_transitions)
 
         self.bn_mt = 0.1
         self.blocks = 1  # Number of blocks in the ResNet
