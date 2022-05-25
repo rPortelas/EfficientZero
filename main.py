@@ -14,7 +14,7 @@ if __name__ == '__main__':
     # Lets gather arguments
     parser = argparse.ArgumentParser(description='EfficientZero')
     parser.add_argument('--env', required=True, help='Name of the environment')
-    parser.add_argument('--result_dir', default=os.path.join(os.getcwd(), 'results'),
+    parser.add_argument('--result_dir', default='/gpfsscratch/rech/imi/uxo14qj/storage',#os.path.join(os.getcwd()
                         help="Directory Path to store results (default: %(default)s)")
     parser.add_argument('--case', required=True, choices=['atari','procgen'],
                         help="It's used for switching between different domains(default: %(default)s)")
@@ -30,8 +30,8 @@ if __name__ == '__main__':
     parser.add_argument('--save_video', action='store_true', default=False, help='save video in test.')
     parser.add_argument('--force', action='store_true', default=False,
                         help='Overrides past results (default: %(default)s)')
-    parser.add_argument('--cpu_actor', type=int, default=20, help='batch cpu actor')
-    parser.add_argument('--gpu_actor', type=int, default=26, help='batch bpu actor')
+    parser.add_argument('--cpu_actor', type=int, default=14, help='batch cpu actor')
+    parser.add_argument('--gpu_actor', type=int, default=20, help='batch bpu actor')
     parser.add_argument('--p_mcts_num', type=int, default=8, help='number of parallel mcts')
     parser.add_argument('--seed', type=int, default=0, help='seed (default: %(default)s)')
     parser.add_argument('--num_gpus', type=int, default=4, help='gpus available')
@@ -53,6 +53,10 @@ if __name__ == '__main__':
                         help='Max number of transitions/env steps during training (default: %(default)s)')
     parser.add_argument('--batch_size', type=int, default=256,
                         help='Number of transitions sampled from buffer for each training step (default: %(default)s)')
+    parser.add_argument('--channels', type=int, default=64,
+                        help='number of channels in the resnet (default: %(default)s)')
+    parser.add_argument('--blocks', type=int, default=1,
+                        help='number of blocks in the resnet (default: %(default)s)')
     parser.add_argument('--training_steps', type=int, default=100 * 1000,
                         help='Total number of training steps (model updates) during training (default: %(default)s)')
     parser.add_argument('--frame_skip', type=int, default=4,

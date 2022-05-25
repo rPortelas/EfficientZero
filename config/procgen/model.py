@@ -83,7 +83,7 @@ class ResidualBlock(nn.Module):
         return out
 
 
-# Downsample observations before representation network (See paper appendix Network Architecture)
+# Downsample observations before representation network from 64x64 to 8x8
 class DownSample(nn.Module):
     def __init__(self, in_channels, out_channels, momentum=0.1):
         super().__init__()
@@ -109,13 +109,13 @@ class DownSample(nn.Module):
         )
         self.downsample_block = ResidualBlock(out_channels // 2, out_channels, momentum=momentum, stride=2, downsample=self.conv2)
         self.resblocks2 = nn.ModuleList(
-            [ResidualBlock(out_channels, out_channels, momentum=momentum) for _ in range(1)]
+            [ResidualBlock(out_channels, out_channels, momentum=momentum) for _ in range(2)]
         )
         self.pooling1 = nn.AvgPool2d(kernel_size=3, stride=2, padding=1)
-        self.resblocks3 = nn.ModuleList(
-            [ResidualBlock(out_channels, out_channels, momentum=momentum) for _ in range(1)]
-        )
-        self.pooling2 = nn.AvgPool2d(kernel_size=3, stride=2, padding=1)
+        # self.resblocks3 = nn.ModuleList(
+        #     [ResidualBlock(out_channels, out_channels, momentum=momentum) for _ in range(1)]
+        # )
+        # self.pooling2 = nn.AvgPool2d(kernel_size=3, stride=2, padding=1)
 
     def forward(self, x):
         x = self.conv1(x)
@@ -127,10 +127,57 @@ class DownSample(nn.Module):
         for block in self.resblocks2:
             x = block(x)
         x = self.pooling1(x)
-        for block in self.resblocks3:
-            x = block(x)
-        x = self.pooling2(x)
+        # for block in self.resblocks3:
+        #     x = block(x)
+        # x = self.pooling2(x)
         return x
+# class DownSample(nn.Module):
+#     def __init__(self, in_channels, out_channels, momentum=0.1):
+#         super().__init__()
+#         self.conv1 = nn.Conv2d(
+#             in_channels,
+#             out_channels // 2,
+#             kernel_size=3,
+#             stride=2,
+#             padding=1,
+#             bias=False,
+#         )
+#         self.bn1 = nn.BatchNorm2d(out_channels // 2, momentum=momentum)
+#         self.resblocks1 = nn.ModuleList(
+#             [ResidualBlock(out_channels // 2, out_channels // 2, momentum=momentum) for _ in range(1)]
+#         )
+#         self.conv2 = nn.Conv2d(
+#             out_channels // 2,
+#             out_channels,
+#             kernel_size=3,
+#             stride=2,
+#             padding=1,
+#             bias=False,
+#         )
+#         self.downsample_block = ResidualBlock(out_channels // 2, out_channels, momentum=momentum, stride=2, downsample=self.conv2)
+#         self.resblocks2 = nn.ModuleList(
+#             [ResidualBlock(out_channels, out_channels, momentum=momentum) for _ in range(1)]
+#         )
+#         self.pooling1 = nn.AvgPool2d(kernel_size=3, stride=2, padding=1)
+#         self.resblocks3 = nn.ModuleList(
+#             [ResidualBlock(out_channels, out_channels, momentum=momentum) for _ in range(1)]
+#         )
+#         self.pooling2 = nn.AvgPool2d(kernel_size=3, stride=2, padding=1)
+#
+#     def forward(self, x):
+#         x = self.conv1(x)
+#         x = self.bn1(x)
+#         x = nn.functional.relu(x)
+#         for block in self.resblocks1:
+#             x = block(x)
+#         x = self.downsample_block(x)
+#         for block in self.resblocks2:
+#             x = block(x)
+#         x = self.pooling1(x)
+#         for block in self.resblocks3:
+#             x = block(x)
+#         x = self.pooling2(x)
+#         return x
 
 
 # Encode the observations into hidden states
@@ -452,8 +499,8 @@ class EfficientZeroNet(BaseNet):
         block_output_size_reward = (
             (
                 reduced_channels_reward
-                * math.ceil(observation_shape[1] / 16)
-                * math.ceil(observation_shape[2] / 16)
+                * math.ceil(observation_shape[1] / 8)
+                * math.ceil(observation_shape[2] / 8)
             )
             if downsample
             else (reduced_channels_reward * observation_shape[1] * observation_shape[2])
@@ -462,8 +509,8 @@ class EfficientZeroNet(BaseNet):
         block_output_size_value = (
             (
                 reduced_channels_value
-                * math.ceil(observation_shape[1] / 16)
-                * math.ceil(observation_shape[2] / 16)
+                * math.ceil(observation_shape[1] / 8)
+                * math.ceil(observation_shape[2] / 8)
             )
             if downsample
             else (reduced_channels_value * observation_shape[1] * observation_shape[2])
@@ -472,8 +519,8 @@ class EfficientZeroNet(BaseNet):
         block_output_size_policy = (
             (
                 reduced_channels_policy
-                * math.ceil(observation_shape[1] / 16)
-                * math.ceil(observation_shape[2] / 16)
+                * math.ceil(observation_shape[1] / 8)
+                * math.ceil(observation_shape[2] / 8)
             )
             if downsample
             else (reduced_channels_policy * observation_shape[1] * observation_shape[2])
@@ -515,7 +562,7 @@ class EfficientZeroNet(BaseNet):
         )
 
         # projection
-        in_dim = num_channels * math.ceil(observation_shape[1] / 16) * math.ceil(observation_shape[2] / 16)
+        in_dim = num_channels * math.ceil(observation_shape[1] / 8) * math.ceil(observation_shape[2] / 8)
         self.porjection_in_dim = in_dim
         self.projection = nn.Sequential(
             nn.Linear(self.porjection_in_dim, self.proj_hid),

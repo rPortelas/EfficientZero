@@ -1,10 +1,12 @@
 import torch
+import numpy as np
 
 from core.config import BaseConfig
 from core.utils import make_procgen, WarpFrame, EpisodicLifeEnv
 from core.dataset import Transforms
 from .env_wrapper import ProcgenWrapper
 from .model import EfficientZeroNet
+
 
 
 class ProcgenConfig(BaseConfig):
@@ -18,9 +20,9 @@ class ProcgenConfig(BaseConfig):
             test_episodes=300,
             checkpoint_interval=100,
             target_model_interval=200,
-            save_ckpt_interval=10000,
-            max_moves=108000,
-            test_max_moves=12000,
+            save_ckpt_interval=100000,
+            max_moves=4000,
+            test_max_moves=4000,
             history_length=400,
             discount=0.997,
             dirichlet_alpha=0.3,
@@ -64,6 +66,7 @@ class ProcgenConfig(BaseConfig):
             pred_hid=512,
             pred_out=1024,)
 
+        self.num_levels_per_env = 500  # will be updated in set_config function
         self.bn_mt = 0.1
         self.blocks = 1  # Number of blocks in the ResNet
         self.channels = 64  # Number of channels in the ResNet
@@ -88,6 +91,17 @@ class ProcgenConfig(BaseConfig):
         else:
             return 1.0
 
+    def set_config(self, args):
+        exp_path = super(ProcgenConfig, self).set_config(args)
+        self.channels = args.channels
+        self.blocks = args.blocks
+        # set procgen related params
+        # 500 distinct training levels in procgen, which we evenly distribute across environments
+        num_parallel_envs = self.num_actors * self.p_mcts_num
+        self.num_levels_per_env = int(np.ceil(500 / num_parallel_envs))
+        print(f"training on {self.num_levels_per_env * num_parallel_envs}")
+        return exp_path
+
     def set_game(self, env_name, save_video=False, save_path=None, video_callable=None):
         self.env_name = env_name
         # gray scale
@@ -96,7 +110,7 @@ class ProcgenConfig(BaseConfig):
         obs_shape = (self.image_channel, 64, 64)
         self.obs_shape = (obs_shape[0] * self.stacked_observations, obs_shape[1], obs_shape[2])
 
-        game = self.new_game()
+        game = self.new_game(seed=0)
         self.action_space_size = game.action_space_size
 
     def get_uniform_network(self):
@@ -126,10 +140,14 @@ class ProcgenConfig(BaseConfig):
             state_norm=self.state_norm)
 
     def new_game(self, seed=None, save_video=False, save_path=None, video_callable=None, uid=None, test=False, final_test=False):
-        if seed is None:
-            seed = 0
 
-        env = make_procgen(self.env_name, seed, skip=self.frame_skip)
+        if test:
+            num_levels = 0  # test done on the full level distribution
+        else:
+            num_levels = self.num_levels_per_env  # each environment receives a fraction of 500 levels
+
+        env = make_procgen(self.env_name, seed, skip=self.frame_skip, num_levels=num_levels)
+
 
         if save_video:
             from gym.wrappers import Monitor

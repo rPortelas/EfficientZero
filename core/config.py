@@ -397,8 +397,6 @@ class BaseConfig(object):
         self.lr_decay_steps = args.training_steps # TODO fix this erases previous in config file configs
         self.use_adam = args.use_adam # TODO fix this erases previous in config file configs
         self.lr_init = args.lr # TODO fix this erases previous in config file configs
-        if self.use_adam:
-            self.lr_init = 0.001  # DeepMind LR value
         self.frame_skip = args.frame_skip
         self.use_value_prefix = not args.no_value_prefix
         self.do_consistency = not args.no_consistency

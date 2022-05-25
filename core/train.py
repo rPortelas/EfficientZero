@@ -1,4 +1,5 @@
 import os
+import psutil
 import ray
 import time
 import torch
@@ -346,7 +347,7 @@ def _train(model, target_model, replay_buffer, shared_storage, batch_storage, co
     target_model = target_model.to(config.device)
 
     if config.use_adam:
-        optimizer = optim.Adam(model.parameters(), lr=config.lr_init, weight_decay=config.weight_decay)
+        optimizer = optim.AdamW(model.parameters(), lr=config.lr_init, weight_decay=config.weight_decay)
     else:
         optimizer = optim.SGD(model.parameters(), lr=config.lr_init, momentum=config.momentum,
                           weight_decay=config.weight_decay)
@@ -448,6 +449,10 @@ def train(config, summary_writer, model_path=None):
 
         model.load_state_dict(weights)
         target_model.load_state_dict(weights)
+
+
+
+    print(model)
 
     storage = SharedStorage.remote(model, target_model)
 

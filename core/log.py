@@ -112,6 +112,10 @@ def _log(config, step_count, log_data, model, replay_buffer, lr, shared_storage,
         summary_writer.add_scalar('{}/consistency_loss'.format(tag), consistency_loss, step_count)
         summary_writer.add_scalar('{}/episodes_collected'.format(tag), replay_episodes_collected,
                                   step_count)
+        summary_writer.add_scalar('{}/transitions_collected'.format(tag), grand_total_num,
+                                  step_count)
+        summary_writer.add_scalar('{}/ram_usage'.format(tag), ram_used,
+                                  step_count)
         summary_writer.add_scalar('{}/replay_buffer_len'.format(tag), replay_buffer_size, step_count)
         summary_writer.add_scalar('{}/total_node_num'.format(tag), total_num, step_count)
         summary_writer.add_scalar('{}/lr'.format(tag), lr, step_count)
